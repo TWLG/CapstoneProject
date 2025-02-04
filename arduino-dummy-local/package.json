@@ -1,0 +1,12 @@
+{
+    "name": "arduino-dummy",
+    "version": "1.0.0",
+    "description": "Dummy Arduino implementation for testing",
+    "main": "dummy.js",
+    "scripts": {
+        "start": "node dummy.js"
+    },
+    "dependencies": {
+        "ws": "^8.18.0"
+    }
+}

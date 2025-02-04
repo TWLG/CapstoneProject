@@ -1,0 +1,10 @@
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    flex: 1;
+    margin-top: 64px; /* Adjust based on header height */
+    margin-bottom: 64px; /* Adjust based on footer height */
+  }
