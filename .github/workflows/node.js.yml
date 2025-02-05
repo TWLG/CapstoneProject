@@ -20,8 +20,8 @@ jobs:
         NEXTAUTH_URL: ${{secrets.NEXTAUTH_URL}}
         GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
         GOOGLE_CLIENT_SECRET: ${{secrets.GOOGLE_CLIENT_SECRET}}
-        DATABASE_URL: ${{secrets.postgresql://admin:admin@localhost:5432/my_database}}
-        NEXTAUTH_SECRET: ${{secrets.FkxKihaQL5BnK0WNgPlZHSe7KLYVuXBFXisTrSMuAAQ1HnbUWLeQiZfLG7UAAOGYwy0Rz6JR6GLOSM5defhoXQ==}}
+        DATABASE_URL: ${{secrets.DATABASE_URL}}
+        NEXTAUTH_SECRET: ${{secrets.NEXTAUTH_SECRET}}
         
     steps:
     - uses: actions/checkout@v4
