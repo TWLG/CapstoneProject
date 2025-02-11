@@ -1,12 +1,10 @@
 #include <ArduinoJson.h>
 //g_CONNECTION.ino
 
-// Wi-Fi credentials
-const char* ssid = "WifiName";
-const char* password = "WifiPass";
+
 
 // WebSocket server details
-const char* server = "192.168.1.61"; // Replace with your PC's local IP
+const char* server = "89.117.76.156"; 
 const uint16_t port = 4000;
 const char* deviceName = "ArduinoDevice1";
 

@@ -204,7 +204,6 @@ const interval = setInterval(() => {
             //return ws.terminate(); // Forcefully close the WebSocket connection
         }
 
-        ws.isAlive = false;
         ws.send(JSON.stringify({ type: 'ping' })); // Send ping to client
     });
 }, checkInterval);

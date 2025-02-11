@@ -399,3 +399,4 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 /frontend/.next
+arduino/a_GLOBAL/e_WIFI_VAR.ino
