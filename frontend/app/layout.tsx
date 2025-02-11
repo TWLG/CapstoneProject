@@ -1,9 +1,4 @@
 import type {Metadata} from "next";
-import {Inter} from "next/font/google";
-
-import {Providers} from "./providers"; // Import the Providers component
-
-const inter = Inter({subsets: ["latin"]});
 
 export const metadata: Metadata = {
   title: "TWLG.NET",
@@ -13,13 +8,7 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Providers>
-          {" "}
-          {/* Wrap the app with Providers */}
-          {children}
-        </Providers>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

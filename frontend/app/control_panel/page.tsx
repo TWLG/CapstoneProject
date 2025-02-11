@@ -1,15 +1,12 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {useSession} from "next-auth/react";
 
 export default function Control_Panel() {
   interface Connection {
     deviceName: string;
     timestamp: string;
   }
-
-  const {data: session, status} = useSession();
 
   const [devices, setDevices] = useState<Connection[]>([]); // Track connected devices
   const [frontends, setFrontends] = useState<Connection[]>([]); // Track connected frontends
@@ -24,7 +21,7 @@ export default function Control_Panel() {
 
   useEffect(() => {
     const socketInstance = new WebSocket(
-      `ws://localhost:4000?sessionToken=${session?.sessionToken}&sessionID=${session?.id}&role=frontend&userID=device-api-key-123`
+      `ws://localhost:4000?role=frontend&userID=device-api-key-123`
     );
 
     socketInstance.onopen = () => {
@@ -94,35 +91,8 @@ export default function Control_Panel() {
     });
   };
 
-  if (status === "loading") {
-    return <p>Loading...</p>;
-  }
-
-  // if admin is one of the users roles
-  if (
-    !session.user?.roles.includes("admin") &&
-    !session.user?.roles.includes("control_panel")
-  ) {
-    console.log(session.user?.roles);
-    return (
-      <div>
-        <div>No access</div>
-        <a href="./">To home</a>
-      </div>
-    );
-  }
   return (
     <div>
-      <data value="">
-        <p>
-          {session
-            ? `User: ${session.user?.name},  Role: ${session.user.roles.join(
-                ", "
-              )}`
-            : "No session available"}
-        </p>
-        <p>{JSON.stringify(session)}</p>
-      </data>
       <h1>Frontend Connected to WebSocket Backend</h1>
       <p>
         Your Device Name: <strong>{clientDeviceName || "Unknown"}</strong>
