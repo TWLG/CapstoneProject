@@ -40,7 +40,7 @@ export default function Control_Panel() {
           setDevices(data.devices);
           setFrontends(data.frontends);
         }
-      } catch (error) {
+      } catch {
         setSocketStatus(false);
       }
     };
