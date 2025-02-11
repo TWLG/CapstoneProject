@@ -21,7 +21,7 @@ export default function Control_Panel() {
 
   useEffect(() => {
     const socketInstance = new WebSocket(
-      `ws://localhost:4000?role=frontend&userID=device-api-key-123`
+      `ws://89.117.76.156:4000?role=frontend&userID=device-api-key-123`
     );
 
     socketInstance.onopen = () => {
