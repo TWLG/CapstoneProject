@@ -40,4 +40,8 @@ jobs:
       - name: Install dependencies - Backend
         run: npm ci
         working-directory: backend
+
+      - name: Restart PM2
+        run: pm2 restart all
+
     #- run: npm test
