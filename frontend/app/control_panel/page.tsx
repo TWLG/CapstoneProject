@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useEffect, useState, useRef} from "react";
 
 export default function Control_Panel() {
   interface Connection {
@@ -18,6 +18,10 @@ export default function Control_Panel() {
     Array.from({length: 8}, () => Array(12).fill(0))
   );
   const [motorSpeed, setMotorSpeed] = useState<number>(1000);
+
+  // Refs for debouncing commands
+  const matrixTimeoutRef = useRef<number | null>(null);
+  const motorTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const socketInstance = new WebSocket(
@@ -55,6 +59,12 @@ export default function Control_Panel() {
 
     return () => {
       socketInstance.close();
+      if (matrixTimeoutRef.current) {
+        clearTimeout(matrixTimeoutRef.current);
+      }
+      if (motorTimeoutRef.current) {
+        clearTimeout(motorTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -68,28 +78,40 @@ export default function Control_Panel() {
 
   const updateMatrix = (newMatrix: number[][]) => {
     setMatrix(newMatrix);
-    if (selectedDevice) {
-      sendMessage({
-        type: "updateLEDMatrix",
-        deviceName: selectedDevice,
-        matrix: newMatrix,
-      });
+    // Debounce the LED matrix update command by 1.5 seconds
+    if (matrixTimeoutRef.current) {
+      clearTimeout(matrixTimeoutRef.current);
     }
+    matrixTimeoutRef.current = window.setTimeout(() => {
+      if (selectedDevice) {
+        sendMessage({
+          type: "updateLEDMatrix",
+          deviceName: selectedDevice,
+          matrix: newMatrix,
+        });
+      }
+    }, 1500);
   };
 
   const updateMotorConfig = (speed: number, direction: boolean) => {
-    if (selectedDevice) {
-      sendMessage({
-        type: "setMotorSpeed",
-        deviceName: selectedDevice,
-        speed,
-      });
-      sendMessage({
-        type: "setMotorDirection",
-        deviceName: selectedDevice,
-        direction,
-      });
+    // Debounce the motor configuration update command by 1.5 seconds
+    if (motorTimeoutRef.current) {
+      clearTimeout(motorTimeoutRef.current);
     }
+    motorTimeoutRef.current = window.setTimeout(() => {
+      if (selectedDevice) {
+        sendMessage({
+          type: "setMotorSpeed",
+          deviceName: selectedDevice,
+          speed,
+        });
+        sendMessage({
+          type: "setMotorDirection",
+          deviceName: selectedDevice,
+          direction,
+        });
+      }
+    }, 1500);
   };
 
   return (
@@ -199,6 +221,26 @@ export default function Control_Panel() {
             ))
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            const clearedMatrix = Array.from({length: 8}, () =>
+              Array(12).fill(0)
+            );
+            updateMatrix(clearedMatrix);
+          }}
+          style={{
+            width: "100%",
+            padding: "10px",
+            backgroundColor: "#6c757d",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Clear LED Board
+        </button>
       </form>
 
       <h2 style={{fontSize: "1.2em"}}>Motor Control</h2>
@@ -262,6 +304,7 @@ export default function Control_Panel() {
               color: "white",
               border: "none",
               borderRadius: "5px",
+              cursor: "pointer",
             }}
           >
             Stop Motor
@@ -280,6 +323,7 @@ export default function Control_Panel() {
               color: "white",
               border: "none",
               borderRadius: "5px",
+              cursor: "pointer",
             }}
           >
             Start Motor
