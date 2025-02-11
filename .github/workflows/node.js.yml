@@ -5,11 +5,10 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
-
     runs-on: self-hosted
 
     strategy:
@@ -17,28 +16,28 @@ jobs:
         node-version: [22.11.0]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
     env:
-        NEXTAUTH_URL: ${{secrets.NEXTAUTH_URL}}
-        GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
-        GOOGLE_CLIENT_SECRET: ${{secrets.GOOGLE_CLIENT_SECRET}}
-        DATABASE_URL: ${{secrets.DATABASE_URL}}
-        NEXTAUTH_SECRET: ${{secrets.NEXTAUTH_SECRET}}
-        
+      NEXTAUTH_URL: ${{secrets.NEXTAUTH_URL}}
+      NEXTAUTH_SECRET: ${{secrets.NEXTAUTH_SECRET}}
+
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json  # Explicitly point to the lock file
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json # Explicitly point to the lock file
 
+      - name: Install dependencies - Frontend
+        run: npm ci
+        working-directory: frontend
 
-    - name: Install dependencies
-      run: npm ci --force
-      working-directory: frontend
+      - name: Build project - Frontend
+        run: npm run build --if-present
+        working-directory: frontend
 
-    - name: Build project
-      run: npm run build --if-present
-      working-directory: frontend
+      - name: Install dependencies - Backend
+        run: npm ci
+        working-directory: backend
     #- run: npm test
