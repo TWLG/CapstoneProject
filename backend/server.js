@@ -3,7 +3,6 @@ const protectedRoutes = require('./routes/protected');
 const http = require('http');
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
 
 const app = express();
 const server = http.createServer(app);
@@ -17,74 +16,12 @@ const userDeviceMap = new Map();
 const API_KEYS = ['device-api-key-123', 'device-api-key-456'];
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret'; // JWT secret for token verification
 
-const MAX_RETRIES = 5; // Max retry attempts for database connection
-let retries = 0;
 
 app.get('/', (req, res) => {
     res.status(200).send('Backend is running and ready for WebSocket connections.');
 });
 
-// Configure database connection
-const createPool = () => {
-    return new Pool({
-        user: process.env.DATABASE_USER || 'admin',
-        host: process.env.DATABASE_HOST || 'localhost',
-        database: process.env.DATABASE_NAME || 'my_database',
-        password: process.env.DATABASE_PASSWORD || 'admin',
-        port: 5432,
-    });
-};
 
-let pool = createPool();
-
-// Function to ensure database is ready
-const ensureDatabaseReady = async () => {
-    while (retries < MAX_RETRIES) {
-        try {
-            await pool.query('SELECT 1');
-            console.log('Database connection established');
-            break;
-        } catch (err) {
-            retries++;
-            console.error(`Database connection failed. Retry ${retries}/${MAX_RETRIES}: ${err.message}`);
-            await new Promise((resolve) => setTimeout(resolve, 5000)); // Retry after 5 seconds
-        }
-    }
-    if (retries >= MAX_RETRIES) {
-        console.error('Max retries reached. Continuing without a database connection.');
-    }
-};
-
-// Ensure the sensor_data table exists
-const ensureTableExists = async () => {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS sensor_data (
-                id SERIAL PRIMARY KEY,
-                value FLOAT,
-                device_name VARCHAR(255),
-                timestamp TIMESTAMP
-            )
-        `);
-        console.log('Table "sensor_data" is ready');
-    } catch (err) {
-        console.error('Error creating table:', err.message);
-    }
-};
-
-
-// Function to save sensor data to the database
-const saveSensorData = async (value, deviceName, timestamp) => {
-    try {
-        await pool.query(
-            'INSERT INTO sensor_data (value, device_name, timestamp) VALUES ($1, $2, $3)',
-            [value, deviceName, timestamp]
-        );
-        console.log(`Data saved to database: Device = ${deviceName}, Value = ${value}, Timestamp = ${timestamp}`);
-    } catch (err) {
-        console.error('Error inserting data:', err.message);
-    }
-};
 
 // Broadcast updated connection list
 const broadcastToFrontends = () => {
@@ -107,25 +44,6 @@ const broadcastToFrontends = () => {
     });
 };
 
-// Validate token or API key
-const validateConnection = (role, apiKey, token) => {
-    if (role === 'device') {
-        // Validate API key for devices
-        if (!apiKey || !API_KEYS.includes(apiKey)) {
-            return { valid: false, message: 'Invalid or missing API key' };
-        }
-        return { valid: true };
-    } else if (role === 'frontend') {
-        // Validate JWT for frontends
-        try {
-            const decoded = jwt.verify(token, JWT_SECRET);
-            return { valid: true, decoded };
-        } catch (err) {
-            return { valid: false, message: 'Invalid or expired JWT' };
-        }
-    }
-    return { valid: false, message: 'Unknown role' };
-};
 
 wss.on('connection', (ws, req) => {
     const urlParams = new URLSearchParams(req.url?.split('?')[1]);
@@ -133,13 +51,6 @@ wss.on('connection', (ws, req) => {
     const apiKey = urlParams.get('apiKey'); // API key for devices
     const userID = urlParams.get('userID'); // UserID for frontends
 
-    const validation = validateConnection(role, apiKey, userID);
-
-    // if (!validation.valid) {
-    //     console.warn(`Connection rejected: ${validation.message}`);
-    //     ws.close(1008, validation.message); // Close connection with error code 1008 (Policy Violation)
-    //     return;
-    // }
 
     let deviceName;
     if (role === 'frontend') {
@@ -342,7 +253,4 @@ const PORT = 4000;
 server.listen(PORT, '0.0.0.0', async () => {
     console.log(`Backend running on http://0.0.0.0:${PORT}`);
 
-    // Ensure database is ready and table exists
-    await ensureDatabaseReady();
-    await ensureTableExists();
 });
