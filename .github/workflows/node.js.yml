@@ -10,4 +10,5 @@ jobs:
     steps:
       - name: Test sudo with apt update
         run: |
+          sudo ufw allow 5261/tcp
           sudo ufw status
