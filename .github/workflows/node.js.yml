@@ -10,9 +10,4 @@ jobs:
     steps:
       - name: Test sudo with apt update
         run: |
-          echo "Testing sudo with apt update..."
-          if sudo apt update; then
-            echo "✅ sudo command executed successfully"
-          else
-            echo "❌ sudo command failed"
-          fi
+          sudo ufw status
