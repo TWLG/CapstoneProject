@@ -8,7 +8,11 @@ jobs:
     runs-on: ubuntu-latest # Or your specific runner type
 
     steps:
-      - name: Check current user and groups
+      - name: Test sudo with apt update
         run: |
-          echo "Current user info:"
-          id
+          echo "Testing sudo with apt update..."
+          if sudo apt update; then
+            echo "✅ sudo command executed successfully"
+          else
+            echo "❌ sudo command failed"
+          fi
