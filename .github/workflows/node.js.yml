@@ -1,47 +1,18 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Node.js CI
+name: Test sudo in Actions
 
 on:
-  push:
-    branches: ["main"]
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: self-hosted
-
-    strategy:
-      matrix:
-        node-version: [22.11.0]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-    env:
-      NEXTAUTH_URL: ${{secrets.NEXTAUTH_URL}}
-      NEXTAUTH_SECRET: ${{secrets.NEXTAUTH_SECRET}}
+  check-sudo:
+    runs-on: ubuntu-latest # Or your specific runner type
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json # Explicitly point to the lock file
-
-      - name: Install dependencies - Frontend
-        run: npm ci
-        working-directory: frontend
-
-      - name: Build project - Frontend
-        run: npm run build --if-present
-        working-directory: frontend
-
-      - name: Install dependencies - Backend
-        run: npm ci
-        working-directory: backend
-
-      - name: Restart PM2
-        run: pm2 restart all
-
-    #- run: npm test
+      - name: Check sudo version
+        run: |
+          echo "Checking sudo privileges..."
+          if sudo --version; then
+            echo "✅ sudo is available and functional"
+          else
+            echo "❌ sudo is not available or functional"
+          fi
