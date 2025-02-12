@@ -8,11 +8,7 @@ jobs:
     runs-on: ubuntu-latest # Or your specific runner type
 
     steps:
-      - name: Check sudo version
+      - name: Check current user and groups
         run: |
-          echo "Checking sudo privileges..."
-          if sudo --version; then
-            echo "✅ sudo is available and functional"
-          else
-            echo "❌ sudo is not available or functional"
-          fi
+          echo "Current user info:"
+          id
