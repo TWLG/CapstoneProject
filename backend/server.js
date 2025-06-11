@@ -11,9 +11,9 @@ const {
   PORT = 8443,
   DB_URL,
   JWT_SECRET,
-  CERT_KEY_PATH = 'etc/nginx/certs/server/server.key',
-  CERT_CRT_PATH = 'etc/nginx/certs/server/server.crt',
-  CA_CRT_PATH   = 'etc/nginx/certs/ca/ca.crt'
+  CERT_KEY_PATH = '/etc/nginx/certs/server/server.key',
+  CERT_CRT_PATH = '/etc/nginx/certs/server/server.crt',
+  CA_CRT_PATH   = '/etc/nginx/certs/ca/ca.crt'
 } = process.env;
 
 // ——— Express App & DB ——————————————————
