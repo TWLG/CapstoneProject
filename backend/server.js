@@ -172,32 +172,28 @@ process.on('SIGTERM', shutdown);
 // simple health‐check page + inline WS tester
 app.get('/test', (req, res) => {
   const host = req.headers.host;
-  // replace YOUR_JWT_HERE with a real token for frontend testing
+  const token = req.query.token || 'YOUR_JWT_HERE';
   res.send(`
     <!DOCTYPE html>
     <html>
-      <head>
-        <meta charset="utf-8"/>
-        <title>WS Server Test</title>
-      </head>
-      <body>
-        <h1>Express+WS mTLS Server</h1>
-        <p>Host: ${host}</p>
-        <p><strong>WebSocket Test:</strong></p>
-        <div id="status">Connecting…</div>
-        <script>
-          // For device testing (mTLS), use a real WebSocket client with certs.
-          // For frontend testing, include a valid JWT in the URL:
-          const ws = new WebSocket('wss://${host}/wss?token=YOUR_JWT_HERE');
-          ws.onopen    = () => document.getElementById('status').innerText = '✅ WS open';
-          ws.onmessage = evt => console.log('←', evt.data);
-          ws.onerror   = e   => document.getElementById('status').innerText = '❌ WS error';
-          ws.onclose   = ()  => document.getElementById('status').innerText = '⚠️ WS closed';
-        </script>
-      </body>
+    <head><meta charset="utf-8"/><title>WS Test</title></head>
+    <body>
+      <h1>WS Test</h1>
+      <div id="status">Connecting…</div>
+      <script>
+        const host = '${host}';
+        const params = new URLSearchParams(window.location.search);
+        const token  = params.get('token') || '${token}';
+        const ws = new WebSocket(\`wss://\${host}/wss?token=\${token}\`);
+        ws.onopen    = () => document.getElementById('status').innerText = '✅ WS open';
+        ws.onerror   = () => document.getElementById('status').innerText = '❌ WS error';
+        ws.onclose   = () => document.getElementById('status').innerText = '⚠️ WS closed';
+      </script>
+    </body>
     </html>
   `);
 });
+
 
 // start
 server.listen(PORT, () => {
