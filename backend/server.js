@@ -72,13 +72,17 @@ const wss = new WebSocketServer({ server, path: '/wss' });
 const devices = new Map();    // deviceId → ws
 const frontends = new Set();  // ws
 
-// Simple Winston logger to file
-import winston from 'winston';
+// Project-local logs folder
+import path from 'path';
+const logDir = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+
 const logger = winston.createLogger({
   transports: [
-    new winston.transports.File({ filename: '/var/log/iot/audit.log' })
+    new winston.transports.File({ filename: path.join(logDir, 'audit.log') })
   ]
 });
+
 
 // Instruction buffer
 const latestInstr = new Map(); // deviceId → instr
