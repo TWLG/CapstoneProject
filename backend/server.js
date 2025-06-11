@@ -173,8 +173,7 @@ process.on('SIGTERM', shutdown);
 // near the bottom of ws-server/index.js, before server.listen(...)
 app.get('/test', (req, res) => {
   const host      = req.headers.host;
-  const dbUrl     = process.env.DB_URL     || '[not set]';
-  const jwtSecret = process.env.JWT_SECRET || '[not set]';
+
 
   res.send(`
     <!DOCTYPE html>
@@ -182,8 +181,7 @@ app.get('/test', (req, res) => {
       <head><meta charset="utf-8"/><title>WS Server Test</title></head>
       <body>
         <h1>Express+WS mTLS Server Test</h1>
-        <p><strong>DB_URL:</strong> <code>${dbUrl}</code></p>
-        <p><strong>JWT_SECRET:</strong> <code>${jwtSecret}</code></p>
+
         <hr/>
         <div id="status">Connecting…</div>
         <script>
