@@ -170,29 +170,36 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 // simple health‐check page + inline WS tester
+// near the bottom of ws-server/index.js, before server.listen(...)
 app.get('/test', (req, res) => {
-  const host = req.headers.host;
-  const token = req.query.token || 'YOUR_JWT_HERE';
+  const host      = req.headers.host;
+  const dbUrl     = process.env.DB_URL     || '[not set]';
+  const jwtSecret = process.env.JWT_SECRET || '[not set]';
+
   res.send(`
     <!DOCTYPE html>
     <html>
-    <head><meta charset="utf-8"/><title>WS Test</title></head>
-    <body>
-      <h1>WS Test</h1>
-      <div id="status">Connecting…</div>
-      <script>
-        const host = '${host}';
-        const params = new URLSearchParams(window.location.search);
-        const token  = params.get('token') || '${token}';
-        const ws = new WebSocket(\`wss://\${host}/wss?token=\${token}\`);
-        ws.onopen    = () => document.getElementById('status').innerText = '✅ WS open';
-        ws.onerror   = () => document.getElementById('status').innerText = '❌ WS error';
-        ws.onclose   = () => document.getElementById('status').innerText = '⚠️ WS closed';
-      </script>
-    </body>
+      <head><meta charset="utf-8"/><title>WS Server Test</title></head>
+      <body>
+        <h1>Express+WS mTLS Server Test</h1>
+        <p><strong>DB_URL:</strong> <code>${dbUrl}</code></p>
+        <p><strong>JWT_SECRET:</strong> <code>${jwtSecret}</code></p>
+        <hr/>
+        <div id="status">Connecting…</div>
+        <script>
+          // grab token from URL if provided
+          const params = new URLSearchParams(window.location.search);
+          const token = params.get('token') || '';
+          const ws = new WebSocket(\`wss://\${window.location.host}/wss?token=\${token}\`);
+          ws.onopen    = () => document.getElementById('status').innerText = '✅ WS open';
+          ws.onerror   = () => document.getElementById('status').innerText = '❌ WS error';
+          ws.onclose   = () => document.getElementById('status').innerText = '⚠️ WS closed';
+        </script>
+      </body>
     </html>
   `);
 });
+
 
 
 // start
