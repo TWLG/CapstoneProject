@@ -4,7 +4,8 @@ import https from 'https';
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const {
   PORT = 8443,
@@ -43,7 +44,7 @@ app.post(
   async (req, res) => {
     const { deviceId } = req.params;
     const instr = req.body;          // { seq, command, params }
-    // TODO: verify device exists & belongs to this user if role==='User'
+    // TODO: verify device exists & belongs to this user if role==='User' or 'Owner'
     latestInstr.set(deviceId, instr);
     logger.info(`INSTR ${deviceId} → ${JSON.stringify(instr)}`);
     // dispatch immediately if connected
