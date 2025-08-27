@@ -7,6 +7,10 @@ const PORT = process.env.PORT || 8080;
 const app = express();
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.send('Hello, world!');
+});
+
 // Example REST route (no auth)
 app.post('/api/instr/:deviceId', (req, res) => {
   // ... handle instruction as needed
