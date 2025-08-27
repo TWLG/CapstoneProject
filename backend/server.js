@@ -11,7 +11,7 @@ app.get('/', (req, res) => {
   res.send('Hello, world!');
 });
 
-// Example REST route (no auth)
+// Example REST route (no auth)/
 app.post('/api/instr/:deviceId', (req, res) => {
   // ... handle instruction as needed
   res.sendStatus(204);
