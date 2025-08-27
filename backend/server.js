@@ -1,206 +1,77 @@
-// ws-server/index.js
+// ws-server/index.js (trimmed to what's changed)
 import fs from 'fs';
 import https from 'https';
 import express from 'express';
-import { WebSocketServer } from 'ws';
+import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
-import pkg from 'pg';
-import winston from 'winston';
-
-
-const { Pool } = pkg;
+import { WebSocketServer, WebSocket } from 'ws';
 
 const {
   PORT = 8443,
   DB_URL,
   JWT_SECRET,
-  CERT_KEY_PATH = '/etc/nginx/certs/server/server.key',
-  CERT_CRT_PATH = '/etc/nginx/certs/server/server.crt',
-  CA_CRT_PATH   = '/etc/nginx/certs/ca/ca.crt'
 } = process.env;
 
-// ——— Express App & DB ——————————————————
 const app = express();
 app.use(express.json());
-const pool = new Pool({ connectionString: DB_URL });
+app.use(cookieParser());
 
-// Simple health-check
-app.get('/', (_req, res) => res.send('WS server healthy'));
+// --- Login route sets HttpOnly cookie (no JS access, no query tokens)
+app.post('/api/login', (req, res) => {
+  // TODO: verify user creds
+  const user = { sub: 'user-123', role: 'Owner' };           // example
+  const token = jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
+  res.cookie('sid', token, {
+    httpOnly: true, secure: true, sameSite: 'strict', path: '/', maxAge: 3600_000
+  });
+  res.sendStatus(204);
+});
 
-// Protected API: post a new instruction for a device
-app.post(
-  '/api/instr/:deviceId',
-  express.json(),
-  (req, res, next) => {             // auth middleware
-    const auth = req.headers.authorization?.split(' ')[1];
-    if (!auth) return res.sendStatus(401);
-    try {
-      const { sub: userId, role } = jwt.verify(auth, JWT_SECRET);
-      if (role !== 'Owner' && role !== 'User')
-        return res.sendStatus(403);
-      req.userId = userId;
-      next();
-    } catch (err) {
-      return res.sendStatus(401);
-    }
-  },
-  async (req, res) => {
-    const { deviceId } = req.params;
-    const instr = req.body;          // { seq, command, params }
-    // TODO: verify device exists & belongs to this user if role==='User' or 'Owner'
-    latestInstr.set(deviceId, instr);
-    logger.info(`INSTR ${deviceId} → ${JSON.stringify(instr)}`);
-    // dispatch immediately if connected
-    const ws = devices.get(deviceId);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(instr));
-    }
+// Example protected REST route using cookie
+app.post('/api/instr/:deviceId', (req, res) => {
+  const token = req.cookies.sid;
+  try {
+    const { sub: userId, role } = jwt.verify(token, JWT_SECRET);
+    if (!['Owner','User'].includes(role)) return res.sendStatus(403);
+    // ... handle instruction as before
     res.sendStatus(204);
+  } catch {
+    res.sendStatus(401);
   }
-);
+});
 
-// ——— HTTPS Server with mTLS ——————————————————
+// --- HTTPS server (server-only TLS)
 const server = https.createServer({
-  key: fs.readFileSync(CERT_KEY_PATH),
-  cert: fs.readFileSync(CERT_CRT_PATH),
-  ca:   fs.readFileSync(CA_CRT_PATH),
-  requestCert: true,
-  rejectUnauthorized: false   // we'll check .authorized per-connection
+
 }, app);
 
-// ——— WebSocket Server ——————————————————
-const wss = new WebSocketServer({ server, path: '/wss' });
+// --- WebSocket (auth via cookie during upgrade)
+const wss = new WebSocketServer({ noServer: true });
 
-// Active connections
-const devices = new Map();    // deviceId → ws
-const frontends = new Set();  // ws
+server.on('upgrade', (req, socket, head) => {
+  // Pull JWT from HttpOnly cookie
+  const cookieHeader = req.headers.cookie || '';
+  const sid = Object.fromEntries(cookieHeader.split(';').map(s => s.trim().split('=')))['sid'];
 
-// Project-local logs folder
-import path from 'path';
-const logDir = path.join(process.cwd(), 'logs');
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
-
-const logger = winston.createLogger({
-  transports: [
-    new winston.transports.File({ filename: path.join(logDir, 'audit.log') })
-  ]
-});
-
-
-// Instruction buffer
-const latestInstr = new Map(); // deviceId → instr
-
-wss.on('connection', (ws, req) => {
-  const isDevice = req.socket.authorized;   // mTLS success
-  const cert    = req.socket.getPeerCertificate();
-  let clientId;
-
-  if (isDevice && cert.subject.CN) {
-    clientId = cert.subject.CN;
-    devices.set(clientId, ws);
-    logger.info(`DEVICE CONNECT ${clientId}`);
-  } else {
-    // attempt JWT auth for frontends
-    const params = new URLSearchParams(req.url.split('?')[1]);
-    const token  = params.get('token');
-    try {
-      const { sub, role } = jwt.verify(token || '', JWT_SECRET);
-      if (role === 'Owner' || role === 'User' || role === 'Guest') {
-        clientId = sub;
-        frontends.add(ws);
-        logger.info(`FRONTEND CONNECT ${clientId} (${role})`);
-        // send initial state
-        ws.send(JSON.stringify({
-          type: 'initial',
-          devices: Array.from(devices.keys()),
-        }));
-      } else {
-        throw new Error('Bad role');
-      }
-    } catch {
-      ws.close(1008, 'Auth failed');
-      return;
-    }
+  try {
+    const user = jwt.verify(sid || '', JWT_SECRET);
+    // If you want guests blocked here, check user.role
+    req.user = user;
+  } catch {
+    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+    socket.destroy(); return;
   }
 
-  // heartbeat & timestamp
-  ws.isAlive   = true;
-  ws.clientId  = clientId;
-  ws.clientType = isDevice ? 'device' : 'frontend';
-
-  ws.on('message', (msg) => {
-    let data;
-    try { data = JSON.parse(msg) }
-    catch { return; }
-    if (data.type === 'ping') {
-      ws.isAlive = true;
-    }
-    // Telemetry from device → broadcast to frontends
-    if (ws.clientType === 'device' && data.telemetry) {
-      frontends.forEach(f => {
-        if (f.readyState === WebSocket.OPEN)
-          f.send(JSON.stringify({ type:'telemetry', device: clientId, data: data.telemetry }));
-      });
-    }
-  });
-
-  ws.on('close', () => {
-    logger.info(`${ws.clientType.toUpperCase()} DISCONNECT ${clientId}`);
-    if (ws.clientType === 'device') devices.delete(clientId);
-    else frontends.delete(ws);
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    ws.user = req.user;
+    wss.emit('connection', ws, req);
   });
 });
 
-// heartbeat checker
-const interval = setInterval(() => {
-  wss.clients.forEach(ws => {
-    if (!ws.isAlive) return ws.terminate();
-    ws.isAlive = false;
-    ws.send(JSON.stringify({ type: 'ping' }));
-  });
-}, 30000);
-
-// graceful shutdown
-const shutdown = () => {
-  clearInterval(interval);
-  wss.clients.forEach(c => c.terminate());
-  pool.end().finally(() => server.close(() => process.exit(0)));
-};
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-
-// simple health‐check page + inline WS tester
-// near the bottom of ws-server/index.js, before server.listen(...)
-app.get('/test', (req, res) => {
-  const host      = req.headers.host;
-
-
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-      <head><meta charset="utf-8"/><title>WS Server Test</title></head>
-      <body>
-        <h1>Express+WS mTLS Server Test</h1>
-
-        <hr/>
-        <div id="status">Connecting…</div>
-        <script>
-          // grab token from URL if provided
-          const params = new URLSearchParams(window.location.search);
-          const token = params.get('token') || '';
-          const ws = new WebSocket(\`wss://\${window.location.host}/wss?token=\${token}\`);
-          ws.onopen    = () => document.getElementById('status').innerText = '✅ WS open';
-          ws.onerror   = () => document.getElementById('status').innerText = '❌ WS error';
-          ws.onclose   = () => document.getElementById('status').innerText = '⚠️ WS closed';
-        </script>
-      </body>
-    </html>
-  `);
+const frontends = new Set();
+wss.on('connection', (ws) => {
+  frontends.add(ws);
+  ws.on('close', () => frontends.delete(ws));
 });
 
-
-
-// start
-server.listen(PORT, () => {
-  console.log(`mTLS WS server & API listening on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`WS server listening on ${PORT}`));

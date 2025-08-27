@@ -6,6 +6,9 @@ const char *server = "89.117.76.156";
 const uint16_t port = 4000;
 const char *deviceName = "ArduinoDevice1";
 
+const char *ssid = "TWLGPC";
+const char *password = "cccseven";
+
 // Constants
 const int maxRetries = 5; // Maximum connection attempts
 
