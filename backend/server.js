@@ -8,10 +8,11 @@ const app = express();
 app.use(express.json());
 
 app.get('/', (req, res) => {
+  console.log('Received request for /');
   res.send('Hello, world!');
 });
 
-// Example REST route (no auth)/
+// Example REST route (no auth)
 app.post('/api/instr/:deviceId', (req, res) => {
   // ... handle instruction as needed
   res.sendStatus(204);
