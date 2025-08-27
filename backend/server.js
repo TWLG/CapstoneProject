@@ -7,6 +7,10 @@ const PORT = process.env.PORT || 8080;
 const app = express();
 app.use(express.json());
 
+app.listen(8080, () => {
+  console.log('Server running on port 8080');
+});
+
 app.get('/', (req, res) => {
   res.send('Hello, world!');
 });
